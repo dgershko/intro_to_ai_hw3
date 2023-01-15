@@ -67,13 +67,14 @@ def example_driver():
     policy = get_policy(mdp, U_new)
     mdp.print_policy(policy)
 
-
     print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
     print("@@@@@@@@@@@@ QLearning @@@@@@@@@@@@")
     print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
 
     print("\nBest Policy:")
-    policy = q_table_policy_extraction(mdp, q_learning(mdp, (2, 0)))
+    print(q_learning(mdp, (2, 0)))
+    # policy = q_table_policy_extraction(mdp, q_learning(mdp, (2, 0)))
+    return
     mdp.print_policy(policy)
 
     # Bonus
