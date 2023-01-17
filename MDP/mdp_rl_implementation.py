@@ -3,10 +3,7 @@ import random
 import numpy as np
 import itertools
 from time import time
-# import math
-
-# itertools.product()  # TODO
-
+import math
 
 from mdp import MDP
 
@@ -51,6 +48,7 @@ def get_policy(mdp: MDP, U):
     # return: the policy
     #
     policy = deepcopy(U)
+    
     for state in list(itertools.product(range(mdp.num_row), range(mdp.num_col))):
         if state in mdp.terminal_states or mdp.board[state[0]][state[1]] == "WALL":
             continue
@@ -82,15 +80,8 @@ def q_learning_step(mdp: MDP, state: tuple, action: str) -> tuple[tuple, float, 
     
     # Return info
     next_state = mdp.step(state, random_action)
-    # print(f"random_num = {random_num}")
-    # print(f"threshold: {q_learning_step.probability_threshold[action]}")
-    # print(f"state: {state}, next_state: {next_state}, action: {action}, random_action: {random_action}")
-    
-    
     next_state_reward = float(mdp.board[next_state[0]][next_state[1]])
     next_is_terminal = next_state in mdp.terminal_states
-    # print(f"current_state: {state}, attempted_action: {action} action_taken: {random_action}, next_state: {next_state}, reward = {next_state_reward}")
-    # input()
     return next_state, next_state_reward, next_is_terminal
 
 
@@ -109,15 +100,6 @@ def generate_probability_threshold(transition_function: dict):
         threshold[action] = deepcopy(prob_arr)
     return threshold
 
-
-def print_qtable(q_table):
-    for row in q_table:
-        for cell in row:
-            print("|", end="")
-            print(f"U:{round(cell[0], 3)}, D:{round(cell[1], 3)}, R:{round(cell[2], 3)}, L:{round(cell[3], 3)}", end="")
-            print("|", end="")
-        print("\n----------------------------------------------------------------")
-
 def q_learning(mdp: MDP, init_state, total_episodes=10000, max_steps=999, learning_rate=0.7, epsilon=1.0,
                       max_epsilon=1.0, min_epsilon=0.01, decay_rate=0.8):
     # Given the mdp and the Qlearning parameters:
@@ -132,14 +114,6 @@ def q_learning(mdp: MDP, init_state, total_episodes=10000, max_steps=999, learni
     # return: the Qtable learned by the algorithm
     #
     q_table = np.zeros((mdp.num_row, mdp.num_col, len(mdp.actions)))
-    # Loop for each episode:
-    #   Initialize S
-    #   Loop for each step of episode:
-    #       Choose A from S using policy derived from Q (e.g. epsilon-greedy)
-    #       Take action A, observe R, S'
-    #       Q(S,A) <- Q(S,A) (old) + alpha(R+ gamma * max (Q(S', a) - Q(S,A) (old)))
-    #       S <- S'
-    #   until S is terminal    
     
     probability_threshold = generate_probability_threshold(mdp.transition_function)
     q_learning_step.probability_threshold = probability_threshold # initialize probabilities for choosing random actions
@@ -171,7 +145,6 @@ def q_learning(mdp: MDP, init_state, total_episodes=10000, max_steps=999, learni
 
 
 def q_table_policy_extraction(mdp: MDP, qtable):
-    print_qtable(qtable)
     # policy = np.zeros((mdp.num_row, mdp.num_col), dtype=str)  # TODO - is this ok?
     
     # policy = [[0] * mdp.num_col for _ in range(mdp.num_row)] 
@@ -187,19 +160,10 @@ def q_table_policy_extraction(mdp: MDP, qtable):
     return policy
 # BONUS
 
-#  def to_state(self, row: int, col: int, num_col: int) -> int:
-#     return row * num_col + col
-
 def policy_evaluation(mdp: MDP, policy):
-    # TODO:
-    # Given the mdp, and a policy
-    # return: the utility U(s) of each state s
-    #
     policy = np.array(policy)
-    print(policy)
     states = list(itertools.product(range(mdp.num_row), range(mdp.num_col)))
     state_to_index = {state: index for index, state in enumerate(states)}
-    print(state_to_index)
     num_states = len(states)
     I = np.identity(num_states)
     utility_value = np.zeros((num_states))
@@ -211,45 +175,12 @@ def policy_evaluation(mdp: MDP, policy):
             next_state = mdp.step(state, action)
             next_state_probability = mdp.transition_function[policy[state]][index]
             probability_matrix[state_to_index[state]][state_to_index[next_state]] += next_state_probability
-    print(probability_matrix)
     reward_vector = np.array([float(mdp.board[state[0]][state[1]]) if mdp.board[state[0]][state[1]] != "WALL" else 0 for state in states])
-    while True:
-        print("craZ")
-        # utility_value = np.linalg.inv((I - mdp.gamma * probability_matrix)) * reward_vector
-        new_utility_value = reward_vector + mdp.gamma * np.dot(probability_matrix, utility_value)
-        if np.linalg.norm(new_utility_value - utility_value, ord=2) < 0.001:
-            two_d_utility = deepcopy(mdp.board)
-            for state in states:
-                two_d_utility[state[0]][state[1]] = new_utility_value[state_to_index[state]]
-            return two_d_utility
-        utility_value = new_utility_value
-        print(utility_value)
-        # mdp.print_utility(utility_value)
-    # utility = {state: 0 for state in states}
-    # new_U = deepcopy(policy)
-    # for state in states:
-        
-    #     if mdp.board[state[0]][state[1]] == "WALL":
-    #         continue
-    #     if state in mdp.terminal_states:
-    #         new_U[state[0]][state[1]] = float(mdp.board[state[0]][state[1]])
-    #         continue
-    #     action_expected_values = {action: 0 for action in mdp.actions}
-    #     for action in mdp.actions: # trying to take an action
-
-    #         # Calculate expected value if action is taken
-    #         for index, actual_action in enumerate(mdp.actions): # result from trying to take that action
-    #             next_state = mdp.step(state, actual_action)
-    #             prob_actual_action = mdp.transition_function[action][index]
-    #             action_expected_values[action] += prob_actual_action * current_U[next_state[0]][next_state[1]]
-
-    #     new_policy[state] = mdp.board[state] + mdp.gamma * 
-    
-    
-    
-    # ====== YOUR CODE: ======
-    raise NotImplementedError
-    # ========================
+    utility_value = np.dot(np.linalg.inv(I - np.dot(mdp.gamma, probability_matrix)), reward_vector)
+    utility = deepcopy(mdp.board)
+    for state in states:
+        utility[state[0]][state[1]] = utility_value[state_to_index[state]]
+    return utility
 
 
 def policy_iteration(mdp: MDP, policy_init):
@@ -258,9 +189,35 @@ def policy_iteration(mdp: MDP, policy_init):
     # run the policy iteration algorithm
     # return: the optimal policy
     #
-    
-    # U(s) = R(s) + 
-    
-    # ====== YOUR CODE: ======
-    raise NotImplementedError
-    # ========================
+    changed = True
+    policy = np.array(policy_init)
+    while changed:
+        changed = False
+        utility = np.array(policy_evaluation(mdp, policy))
+        
+        # For each state, check if there's a better action for the current policy
+        for state in list(itertools.product(range(mdp.num_row), range(mdp.num_col))):
+            if state in mdp.terminal_states or mdp.board[state[0]][state[1]] == "WALL":
+                continue
+            current_expected_value = 0
+            policy_action = policy[state]
+            
+            for real_action_index, real_action in enumerate(mdp.actions):
+                current_expected_value += mdp.transition_function[policy_action][real_action_index] * utility[mdp.step(state, real_action)]
+            max_expected_value = -math.inf
+            best_action = 0
+            
+            # Calculate action expected value and update best action if needed
+            for action in mdp.actions:
+                action_expected_value = 0
+                for real_action_index, real_action in enumerate(mdp.actions):
+                    action_expected_value += mdp.transition_function[action][real_action_index] * utility[mdp.step(state, real_action)]
+                if action_expected_value > max_expected_value:
+                    max_expected_value = action_expected_value
+                    best_action = action
+            
+            # Update state's policy
+            if max_expected_value > current_expected_value:
+                changed = True                
+                policy[state] = best_action
+    return policy
