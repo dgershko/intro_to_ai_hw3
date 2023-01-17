@@ -113,7 +113,11 @@ def q_learning(mdp: MDP, init_state, total_episodes=10000, max_steps=999, learni
     # init_state - the initial state to start each episode from
     # return: the Qtable learned by the algorithm
     #
-    q_table = np.zeros((mdp.num_row, mdp.num_col, len(mdp.actions)))
+    # q_table = np.zeros((mdp.num_row, mdp.num_col, len(mdp.actions)))
+    states = list(itertools.product(range(mdp.num_row), range(mdp.num_col)))
+    state_to_index = {state: index for index, state in enumerate(states)}
+    num_states = len(states)
+    q_table = np.zeros((num_states, len(mdp.actions)))
     
     probability_threshold = generate_probability_threshold(mdp.transition_function)
     q_learning_step.probability_threshold = probability_threshold # initialize probabilities for choosing random actions
@@ -125,7 +129,7 @@ def q_learning(mdp: MDP, init_state, total_episodes=10000, max_steps=999, learni
             
             # Take action (random / best) according to explore/exploit
             if explore_exploit_threshold > epsilon:
-                action_index = np.argmax(q_table[state])
+                action_index = np.argmax(q_table[state_to_index[state]])
             else:
                 action_index = random.randint(0,3)
             
@@ -133,8 +137,8 @@ def q_learning(mdp: MDP, init_state, total_episodes=10000, max_steps=999, learni
             action = list(mdp.actions)[action_index]
             new_state, reward, is_final = q_learning_step(mdp, state, action)
             # Update Q(s,a)
-            learning_value = reward + mdp.gamma * np.max(q_table[new_state]) - q_table[state][action_index]
-            q_table[state][action_index] = q_table[state][action_index] + learning_rate * learning_value
+            learning_value = reward + mdp.gamma * np.max(q_table[state_to_index[new_state]]) - q_table[state_to_index[state]][action_index]
+            q_table[state_to_index[state]][action_index] = q_table[state_to_index[state]][action_index] + learning_rate * learning_value
             state = new_state
             
             if is_final:
@@ -145,16 +149,16 @@ def q_learning(mdp: MDP, init_state, total_episodes=10000, max_steps=999, learni
 
 
 def q_table_policy_extraction(mdp: MDP, qtable):
-    # policy = np.zeros((mdp.num_row, mdp.num_col), dtype=str)  # TODO - is this ok?
+    states = list(itertools.product(range(mdp.num_row), range(mdp.num_col)))
+    state_to_index = {state: index for index, state in enumerate(states)}
     
-    # policy = [[0] * mdp.num_col for _ in range(mdp.num_row)] 
     policy = [["none" for _ in range(mdp.num_col)] for _ in range(mdp.num_row)]
     # For each state, extract its policy from the given qtable
     for state in list(itertools.product(range(mdp.num_row), range(mdp.num_col))):
         if state in mdp.terminal_states or mdp.board[state[0]][state[1]] == "WALL":
             continue
         
-        action_index = np.argmax(qtable[state])
+        action_index = np.argmax(qtable[state_to_index[state]])
         action = list(mdp.actions)[action_index]
         policy[state[0]][state[1]] = action #
     return policy
