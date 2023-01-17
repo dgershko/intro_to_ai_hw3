@@ -28,6 +28,17 @@ class Test(unittest.TestCase):
         self.assertTrue(np.array_equal(l2_dist_result, np.sqrt([[3], [12]])))
         print('Success')
 
+    def test_l2(self):
+        mat1 = np.array([[1, 1, 1],
+                         [2, 2, 2],
+                         [5, -1, 0]])
+        mat2 = np.array([[0, 0, 0],
+                         [1, 2, 3]])
+
+        l2_dist_result = l2_dist(mat1, mat2)
+        self.assertTrue(np.array_equal(l2_dist_result, np.sqrt([[3, 5], [12, 2], [26, 34]])))
+        print('Success')
+
     def test_accuracy(self):
         y1 = np.array([1, 1, 1])  # (N1, D) = (3,)
         y2 = np.array([1, 0, 0])  # (N2, D) = (3,)
@@ -36,7 +47,13 @@ class Test(unittest.TestCase):
         self.assertEqual(accuracy_val, 1 / 3)
         print('Success')
 
+    def test_accuracy2(self):
+        y1 = np.array([1, 1, 1, 2, 4])
+        y2 = np.array([1, 0, 0, 2, 5])
 
+        accuracy_val = accuracy(y1, y2)
+        self.assertEqual(accuracy_val, 2 / 5)
+        print('Success')
 
 if __name__ == '__main__':
     unittest.main()
