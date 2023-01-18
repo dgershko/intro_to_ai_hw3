@@ -1,5 +1,5 @@
 import math
-
+import numpy as np
 from DecisonTree import Leaf, Question, DecisionNode, class_counts
 from utils import *
 
@@ -24,18 +24,13 @@ class ID3:
         :param labels: rows data labels.
         :return: entropy value.
         """
-        # TODO:
-        #  Calculate the entropy of the data as shown in the class.
-        #  - You can use counts as a helper dictionary of label -> count, or implement something else.
-
         counts = class_counts(rows, labels)
-        impurity = 0.0
-
-        # ====== YOUR CODE: ======
-        raise NotImplementedError
-        # ========================
-
-        return impurity
+        num_of_objects = np.shape(rows)[0]
+        # p(label)  = counts[label] / num_of_objects
+        p_label = list(map(lambda x: counts[x] / num_of_objects, set(labels)))
+        entropy = -np.sum([label_prob * math.log2(label_prob) if label_prob else 0 for label_prob in p_label])
+        
+        return entropy
 
     def info_gain(self, left, left_labels, right, right_labels, current_uncertainty):
         """
@@ -48,16 +43,13 @@ class ID3:
         :param current_uncertainty: the current uncertainty of the current node
         :return: the info gain for splitting the current node into the two children left and right.
         """
-        # TODO:
-        #  - Calculate the entropy of the data of the left and the right child.
-        #  - Calculate the info gain as shown in class.
         assert (len(left) == len(left_labels)) and (len(right) == len(right_labels)), \
             'The split of current node is not right, rows size should be equal to labels size.'
 
         info_gain_value = 0.0
-        # ====== YOUR CODE: ======
-        raise NotImplementedError
-        # ========================
+        total_size = len(left) + len(right)
+        l_entropy, r_entropy = self.entropy(left, left_labels), self.entropy(right, right_labels)
+        info_gain_value = current_uncertainty - (len(left) * l_entropy + len(right) * r_entropy) / total_size
 
         return info_gain_value
 
@@ -74,14 +66,20 @@ class ID3:
         #   - For each row in the dataset, check if it matches the question.
         #   - If so, add it to 'true rows', otherwise, add it to 'false rows'.
         #   - Calculate the info gain using the `info_gain` method.
-
-        gain, true_rows, true_labels, false_rows, false_labels = None, None, None, None, None
+        
+        gain, true_rows, true_labels, false_rows, false_labels = 0, [], [], [], []
         assert len(rows) == len(labels), 'Rows size should be equal to labels size.'
-
-        # ====== YOUR CODE: ======
-        raise NotImplementedError
-        # ========================
-
+        
+        for row, label in zip(rows, labels):
+            if question.match(row):
+                true_rows.append(row)
+                true_labels.append(label)
+            else:
+                false_rows.append(row)
+                false_labels.append(label)
+        
+        gain = self.info_gain(true_rows, true_labels, false_rows, false_labels, current_uncertainty)
+        
         return gain, true_rows, true_labels, false_rows, false_labels
 
     def find_best_split(self, rows, labels):
@@ -99,10 +97,18 @@ class ID3:
         best_false_rows, best_false_labels = None, None
         best_true_rows, best_true_labels = None, None
         current_uncertainty = self.entropy(rows, labels)
-
-        # ====== YOUR CODE: ======
-        raise NotImplementedError
-        # ========================
+        for feature_index in np.shape(rows)[1]:
+            feature_values = [rows[example_index][feature_index] for example_index in np.shape(rows)[0]].sort()
+            thresholds = []
+            for example_pair in len(feature_values) - 1:
+                thresholds.append(0.5 * (feature_values[example_pair] + feature_values[example_pair + 1]))
+            for threshold in thresholds:
+                current_question = Question("IDK", feature_index, threshold)
+                gain, true_rows, true_labels, false_rows, false_labels = self.partition(rows, labels, current_question, current_uncertainty)
+            if gain > best_gain:
+                best_gain = gain
+                best_question = current_question
+                best_true_rows, best_true_labels, best_false_rows, best_false_labels = true_rows, true_labels, false_rows, false_labels
 
         return best_gain, best_question, best_true_rows, best_true_labels, best_false_rows, best_false_labels
 
