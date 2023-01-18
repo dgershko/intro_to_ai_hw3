@@ -5,7 +5,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from numpy.random import RandomState
 from sklearn.model_selection import KFold
-
+from sklearn.metrics import pairwise_distances
 """
 ========================================================================
 ========================================================================
@@ -14,7 +14,8 @@ from sklearn.model_selection import KFold
 ========================================================================
 """
 
-ID = 209088723
+ID = 207376807
+# ID = 209088723
 random_gen = RandomState(seed=ID)
 print_formatted_values = False
 
@@ -48,20 +49,7 @@ def l2_dist(x1: np.array, x2: np.array):
     :return: A distance matrix of shape (N1, N2) where the entry i, j
     represents the distance between x1 sample i and x2 sample j.
     """
-    # TODO:
-    #  Implement L2-distance calculation efficiently as possible.
-    #  Note: Use only basic numpy operations, no external code.
-
-
-    N1 = np.shape(x1)[0]
-    N2 = np.shape(x2)[0]
-    dists = np.zeros((N1, N2))
-    
-    for i in range (N1):
-        for j in range(N2):
-            samples_diff = x1[i] - x2[j]
-            dists[i][j] = np.linalg.norm(samples_diff, ord=2)
-
+    dists = np.linalg.norm(x1[:, None, :] - x2[None, :, :], axis=-1) # holy shit numpy is evil
     return dists
 
 
