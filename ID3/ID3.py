@@ -24,12 +24,20 @@ class ID3:
         :param labels: rows data labels.
         :return: entropy value.
         """
+        # 3% faster lmao
+        n_labels = len(labels)
+        if n_labels <= 1:
+            return 0
+        _, counts = np.unique(labels, return_counts=True)
+        probs = counts[np.nonzero(counts)] / n_labels
+        tmp_entropy = - np.sum(probs * np.log2(probs))
+        return tmp_entropy
+
         counts = class_counts(rows, labels)
         num_of_objects = np.shape(rows)[0]
         # p(label)  = counts[label] / num_of_objects
         p_label = list(map(lambda x: counts[x] / num_of_objects, set(labels)))
         entropy = -np.sum([label_prob * math.log2(label_prob) if label_prob else 0 for label_prob in p_label])
-        
         return entropy
 
     def info_gain(self, left, left_labels, right, right_labels, current_uncertainty):
@@ -97,7 +105,7 @@ class ID3:
             for threshold in thresholds:
                 current_question = Question(self.label_names[feature_index], feature_index, threshold)
                 gain, true_rows, true_labels, false_rows, false_labels = self.partition(rows, labels, current_question, current_uncertainty)
-                if gain > best_gain:
+                if gain >= best_gain:
                     best_gain = gain
                     best_question = current_question
                     best_true_rows, best_true_labels, best_false_rows, best_false_labels = true_rows, true_labels, false_rows, false_labels
@@ -150,18 +158,16 @@ class ID3:
         :param row: vector of shape (1,D).
         :return: The row prediction.
         """
-        # TODO: Implement ID3 class prediction for set of data.
-        #   - Decide whether to follow the true-branch or the false-branch.
-        #   - Compare the feature / value stored in the node, to the example we're considering.
-
         if node is None:
             node = self.tree_root
             
         prediction = None
 
         if isinstance(node, Leaf):
+            # TODO: I hate this
+            if len(set(node.predictions.values())) == len(node.predictions.values()):
+                return 'M'
             return max(node.predictions, key=node.predictions.get)
-            # return list(node.predictions)[0] # TODO: handle case of more than one prediction per leaf (not consistent)
 
         if node.question.match(row):
             prediction = self.predict_sample(row, node.true_branch)

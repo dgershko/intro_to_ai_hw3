@@ -41,31 +41,38 @@ def best_m_test(x_train, y_train, x_test, y_test, attribute_names, min_for_pruni
     acc = accuracy(id3.predict(x_test), y_test)
     return acc
 
-class fit_and_predict():
-    def __init__(self, x_train, y_train, x_test, y_test, attribute_names):
-        self.x_train = x_train
-        self.x_test = x_test
-        self.y_train = y_train
-        self.y_test = y_test
-        self.attribute_names = attribute_names
 
-    def __call__(self, M):
-        id3 = ID3(self.attribute_names, min_for_pruning=M)
-        id3.fit(self.x_train, self.y_train)
-        acc = accuracy(id3.predict(self.x_test), self.y_test)
-        # print(f"acc: {acc}, m = {M}")
-        return acc
 
 def cross_validation_experiment(plot_graph):
     attributes_names, train_dataset, test_dataset = load_data_set('ID3')
-    # M_values = list(range(1, 50, 9))
     M_values = [1, 10, 25]
     n_split = 5
     k_fold = KFold(n_splits=n_split, shuffle=True, random_state=random_gen)
     split = create_train_validation_split(train_dataset, k_fold, 0.2)
     M_accuracy = {m: 0 for m in M_values}
 
+
+    # =======================================
+    # Multi-processed approach, tests 12 M values simultaneously.
+    # =======================================
+    # class fit_and_predict():
+    #     def __init__(self, x_train, y_train, x_test, y_test, attribute_names):
+    #         self.x_train = x_train
+    #         self.x_test = x_test
+    #         self.y_train = y_train
+    #         self.y_test = y_test
+    #         self.attribute_names = attribute_names
+    #
+    #     def __call__(self, M):
+    #         id3 = ID3(self.attribute_names, min_for_pruning=M)
+    #         id3.fit(self.x_train, self.y_train)
+    #         acc = accuracy(id3.predict(self.x_test), self.y_test)
+    #         return acc
+    # =======================================
     # import multiprocessing
+    # M_values = list(range(1, 46, 4))
+    # print(M_values)
+    # print(f"num of m values: {len(M_values)}")
     # with multiprocessing.Pool(processes=12) as pool:
     #     m_acc_per_split = []
     #     for data_split in split:
@@ -74,15 +81,16 @@ def cross_validation_experiment(plot_graph):
     #         fit_and_predict_obj = fit_and_predict(x_train, y_train, x_test, y_test, attributes_names)
     #         m_acc_per_split.append(pool.map(fit_and_predict_obj, M_values))
     # m_acc_per_split = np.array(m_acc_per_split).mean(axis=0)
-    # print(m_acc_per_split)
-    
+    # util_plot_graph(M_values, m_acc_per_split, "M value", "M accuracy")
+    # return M_values[np.argmax(m_acc_per_split)]
+
     for data_split in split:
         x_train, y_train, x_test, y_test = get_dataset_split(data_split[0], data_split[1], target_attribute)
         for M in M_values:
             id3 = ID3(attributes_names, min_for_pruning=M)
             id3.fit(x_train, y_train)
-            M_accuracy[M] += accuracy(id3.predict(x_test), y_test) / n_split
-            # print(f"M: {M}, new acc: {M_accuracy[M]}")
+            M_accuracy[M] += accuracy(id3.predict(x_test), y_test)
+    M_accuracy = {M: acc / n_split for M, acc in M_accuracy.items()}
     util_plot_graph(M_values, M_accuracy.values(), "M value", "M accuracy")
     return max(M_accuracy, key=M_accuracy.get)
     
@@ -97,7 +105,11 @@ if __name__ == '__main__':
         modify the call "utils.set_formatted_values(value=False)" from False to True and run it
     """
     formatted_print = True
+    import time
+    start = time.time()
     basic_experiment(*data_split, attributes_names, formatted_print)
+    print(f"time taken: {time.time() - start}")
+    exit()
     """
        cross validation experiment
        (*) To run the cross validation experiment over the  M pruning hyper-parameter 

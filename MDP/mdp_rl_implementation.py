@@ -59,7 +59,8 @@ def get_policy(mdp: MDP, U):
             for index, actual_action in enumerate(mdp.actions): # result from trying to take that action
                 next_state = mdp.step(state, actual_action)
                 prob_actual_action = mdp.transition_function[action][index]
-                current_reward = float(mdp.board[next_state[0]][next_state[1]])
+                # current_reward = float(mdp.board[next_state[0]][next_state[1]])
+                current_reward = float(mdp.board[state[0]][state[1]])
                 action_expected_values[action] += prob_actual_action * (mdp.gamma * U[next_state[0]][next_state[1]] + current_reward)
         
         # Update policy to do the best action
@@ -67,12 +68,12 @@ def get_policy(mdp: MDP, U):
     return policy
 
 
-# Given an MDP, state and wanted action - it attempts to do the actions and returns a bunch of useless infox
-def q_learning_step(mdp: MDP, state: tuple, action: str) -> tuple[tuple, float, bool]:
+# Given an MDP, state and wanted action - it attempts to do the action and returns a bunch of useless info
+def q_learning_step(mdp: MDP, state: tuple, action: str, probability_threshold: float) -> tuple[tuple, float, bool]:
     
     # Randomize the action
     random_num = random.random()
-    for index, threshold in enumerate(q_learning_step.probability_threshold[action]):
+    for index, threshold in enumerate(probability_threshold[action]):
         if random_num < threshold:
             # random_action = list(mdp.actions.items())[index][0]
             random_action = list(mdp.actions)[index]
@@ -115,12 +116,15 @@ def q_learning(mdp: MDP, init_state, total_episodes=10000, max_steps=999, learni
     #
     # q_table = np.zeros((mdp.num_row, mdp.num_col, len(mdp.actions)))
     states = list(itertools.product(range(mdp.num_row), range(mdp.num_col)))
+    is_state_legal = lambda state: mdp.board[state[0]][state[1]] != "WALL"
+    states = list(filter(is_state_legal, states))
     state_to_index = {state: index for index, state in enumerate(states)}
     num_states = len(states)
     q_table = np.zeros((num_states, len(mdp.actions)))
-    
+    for state in mdp.terminal_states:
+        q_table[state_to_index[state]] = mdp.board[state[0]][state[1]]
+
     probability_threshold = generate_probability_threshold(mdp.transition_function)
-    q_learning_step.probability_threshold = probability_threshold # initialize probabilities for choosing random actions
     
     for episode in range(total_episodes): # episodes
         state = init_state
@@ -135,38 +139,43 @@ def q_learning(mdp: MDP, init_state, total_episodes=10000, max_steps=999, learni
             
             # Take action
             action = list(mdp.actions)[action_index]
-            new_state, reward, is_final = q_learning_step(mdp, state, action)
+            new_state, _, is_final = q_learning_step(mdp, state, action, probability_threshold)
+            reward = float(mdp.board[state[0]][state[1]])
             # Update Q(s,a)
             learning_value = reward + mdp.gamma * np.max(q_table[state_to_index[new_state]]) - q_table[state_to_index[state]][action_index]
-            q_table[state_to_index[state]][action_index] = q_table[state_to_index[state]][action_index] + learning_rate * learning_value
+            q_table[state_to_index[state], action_index] = q_table[state_to_index[state]][action_index] + learning_rate * learning_value
             state = new_state
-            
             if is_final:
                 break
-
+            
         epsilon = min_epsilon + (max_epsilon - min_epsilon) * np.exp(-decay_rate*episode)
     return q_table
 
 
 def q_table_policy_extraction(mdp: MDP, qtable):
     states = list(itertools.product(range(mdp.num_row), range(mdp.num_col)))
+    is_state_legal = lambda state: mdp.board[state[0]][state[1]] != "WALL"
+    states = list(filter(is_state_legal, states))
     state_to_index = {state: index for index, state in enumerate(states)}
     
     policy = [["none" for _ in range(mdp.num_col)] for _ in range(mdp.num_row)]
+    # policy = np.zeros((mdp.num_row, mdp.num_col), dtype=object)
     # For each state, extract its policy from the given qtable
-    for state in list(itertools.product(range(mdp.num_row), range(mdp.num_col))):
+    for state in states:
         if state in mdp.terminal_states or mdp.board[state[0]][state[1]] == "WALL":
             continue
         
         action_index = np.argmax(qtable[state_to_index[state]])
         action = list(mdp.actions)[action_index]
-        policy[state[0]][state[1]] = action #
+        policy[state[0]][state[1]] = action
     return policy
-# BONUS
+
 
 def policy_evaluation(mdp: MDP, policy):
     policy = np.array(policy)
     states = list(itertools.product(range(mdp.num_row), range(mdp.num_col)))
+    is_state_legal = lambda state: mdp.board[state[0]][state[1]] != "WALL"
+    states = list(filter(is_state_legal, states))
     state_to_index = {state: index for index, state in enumerate(states)}
     num_states = len(states)
     I = np.identity(num_states)
@@ -179,28 +188,25 @@ def policy_evaluation(mdp: MDP, policy):
             next_state = mdp.step(state, action)
             next_state_probability = mdp.transition_function[policy[state]][index]
             probability_matrix[state_to_index[state]][state_to_index[next_state]] += next_state_probability
-    reward_vector = np.array([float(mdp.board[state[0]][state[1]]) if mdp.board[state[0]][state[1]] != "WALL" else 0 for state in states])
+    reward_vector = np.array([float(mdp.board[state[0]][state[1]]) for state in states])
     utility_value = np.dot(np.linalg.inv(I - np.dot(mdp.gamma, probability_matrix)), reward_vector)
-    utility = deepcopy(mdp.board)
+    utility = np.zeros((mdp.num_row, mdp.num_col))
     for state in states:
         utility[state[0]][state[1]] = utility_value[state_to_index[state]]
     return utility
 
 
 def policy_iteration(mdp: MDP, policy_init):
-    # TODO:
-    # Given the mdp, and the initial policy - policy_innit
-    # run the policy iteration algorithm
-    # return: the optimal policy
-    #
     changed = True
     policy = np.array(policy_init)
+    states = list(itertools.product(range(mdp.num_row), range(mdp.num_col)))
+    is_state_legal = lambda state: mdp.board[state[0]][state[1]] != "WALL"
+    states = list(filter(is_state_legal, states))
     while changed:
         changed = False
         utility = np.array(policy_evaluation(mdp, policy))
-        
         # For each state, check if there's a better action for the current policy
-        for state in list(itertools.product(range(mdp.num_row), range(mdp.num_col))):
+        for state in states:
             if state in mdp.terminal_states or mdp.board[state[0]][state[1]] == "WALL":
                 continue
             current_expected_value = 0
@@ -219,7 +225,6 @@ def policy_iteration(mdp: MDP, policy_init):
                 if action_expected_value > max_expected_value:
                     max_expected_value = action_expected_value
                     best_action = action
-            
             # Update state's policy
             if max_expected_value > current_expected_value:
                 changed = True                
