@@ -45,7 +45,7 @@ def best_m_test(x_train, y_train, x_test, y_test, attribute_names, min_for_pruni
 
 def cross_validation_experiment(plot_graph):
     attributes_names, train_dataset, test_dataset = load_data_set('ID3')
-    M_values = [1, 10, 25]
+    M_values = [1, 3, 5, 10, 25, 50]
     n_split = 5
     k_fold = KFold(n_splits=n_split, shuffle=True, random_state=random_gen)
     split = create_train_validation_split(train_dataset, k_fold, 0.2)
@@ -62,7 +62,7 @@ def cross_validation_experiment(plot_graph):
     #         self.y_train = y_train
     #         self.y_test = y_test
     #         self.attribute_names = attribute_names
-    #
+    
     #     def __call__(self, M):
     #         id3 = ID3(self.attribute_names, min_for_pruning=M)
     #         id3.fit(self.x_train, self.y_train)
@@ -105,11 +105,7 @@ if __name__ == '__main__':
         modify the call "utils.set_formatted_values(value=False)" from False to True and run it
     """
     formatted_print = True
-    import time
-    start = time.time()
     basic_experiment(*data_split, attributes_names, formatted_print)
-    print(f"time taken: {time.time() - start}")
-    exit()
     """
        cross validation experiment
        (*) To run the cross validation experiment over the  M pruning hyper-parameter 
