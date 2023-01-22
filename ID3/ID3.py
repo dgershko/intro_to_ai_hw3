@@ -164,7 +164,7 @@ class ID3:
         prediction = None
 
         if isinstance(node, Leaf):
-            # TODO: I hate this
+            # TODO: I hate this @piazza 186
             if len(set(node.predictions.values())) == len(node.predictions.values()):
                 return 'M'
             return max(node.predictions, key=node.predictions.get)
