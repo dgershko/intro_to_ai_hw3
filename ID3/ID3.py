@@ -9,7 +9,7 @@ Make the imports of python packages needed
 
 
 class ID3:
-    def __init__(self, label_names: list, min_for_pruning=0, target_attribute='diagnosis'):
+    def __init__(self, label_names = None, min_for_pruning=0, target_attribute='diagnosis'):
         self.label_names = label_names
         self.target_attribute = target_attribute
         self.tree_root = None
@@ -30,15 +30,15 @@ class ID3:
             return 0
         _, counts = np.unique(labels, return_counts=True)
         probs = counts[np.nonzero(counts)] / n_labels
-        tmp_entropy = - np.sum(probs * np.log2(probs))
-        return tmp_entropy
-
-        counts = class_counts(rows, labels)
-        num_of_objects = np.shape(rows)[0]
-        # p(label)  = counts[label] / num_of_objects
-        p_label = list(map(lambda x: counts[x] / num_of_objects, set(labels)))
-        entropy = -np.sum([label_prob * math.log2(label_prob) if label_prob else 0 for label_prob in p_label])
+        entropy = - np.sum(probs * np.log2(probs))
         return entropy
+
+        # counts = class_counts(rows, labels)
+        # num_of_objects = np.shape(rows)[0]
+        # # p(label)  = counts[label] / num_of_objects
+        # p_label = list(map(lambda x: counts[x] / num_of_objects, set(labels)))
+        # entropy = -np.sum([label_prob * math.log2(label_prob) if label_prob else 0 for label_prob in p_label])
+        # return entropy
 
     def info_gain(self, left, left_labels, right, right_labels, current_uncertainty):
         """
@@ -97,13 +97,20 @@ class ID3:
         best_false_rows, best_false_labels = None, None
         best_true_rows, best_true_labels = None, None
         current_uncertainty = self.entropy(rows, labels)
-        for feature_index in range(np.shape(rows)[1]):
-            feature_values = np.sort([example[feature_index] for example in rows])
+        for feature_index in range(np.shape(rows)[1]): # np.shape(rows)[1] == num of columns in the rows matrix == feature indices
+            feature_values = np.sort([example[feature_index] for example in rows]) # sort feature values small to large
+
+            # generate threshold list: list of values between each two consecutive values in the feature_values list
             thresholds = []
             for example_pair in range(len(feature_values) - 1):
                 thresholds.append(0.5 * (feature_values[example_pair] + feature_values[example_pair + 1]))
+            
+            # try each threshold value (for each feature) as a question, select the one that provides the best info gain.
             for threshold in thresholds:
-                current_question = Question(self.label_names[feature_index], feature_index, threshold)
+                try:
+                    current_question = Question(self.label_names[feature_index], feature_index, threshold)
+                except TypeError:
+                    current_question = Question("null", feature_index, threshold)
                 gain, true_rows, true_labels, false_rows, false_labels = self.partition(rows, labels, current_question, current_uncertainty)
                 if gain >= best_gain:
                     best_gain = gain
@@ -125,6 +132,7 @@ class ID3:
             print("sanity check")
             return None
 
+        # if only same type of label for each row or num of rows <= min_for_pruning, create leaf for these rows.
         if len(rows) <= self.min_for_pruning or len(set(labels)) == 1:
             # print(f"Leaf > {len(labels)} labels with value {labels[0]}")
             return Leaf(rows, labels)
@@ -165,7 +173,7 @@ class ID3:
 
         if isinstance(node, Leaf):
             # TODO: I hate this @piazza 186
-            if len(set(node.predictions.values())) == len(node.predictions.values()):
+            if len(set(node.predictions.values())) != len(node.predictions.values()): # there are equal values
                 return 'M'
             return max(node.predictions, key=node.predictions.get)
 

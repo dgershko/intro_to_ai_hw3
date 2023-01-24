@@ -2,7 +2,6 @@ from copy import deepcopy
 import random
 import numpy as np
 import itertools
-from time import time
 import math
 
 from mdp import MDP
@@ -43,7 +42,6 @@ def value_iteration(mdp: MDP, U_init, epsilon=10 ** (-3)):
 
 
 def get_policy(mdp: MDP, U):
-    # TODO:
     # Given the mdp and the utility of each state - U (which satisfies the Belman equation)
     # return: the policy
     #

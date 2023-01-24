@@ -1,5 +1,5 @@
 import pathlib
-
+import os
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -59,11 +59,15 @@ def load_data_set(clf_type: str):
     :param clf_type: a string equals 'ID3' or 'KNN'
     :return: A tuple of attributes_names (the features row) with train and test datasets split.
     """
+    if "LINUX_OS" in os.environ:
+        divider = "/"
+    else:
+        divider = "\\"
     assert clf_type in ('ID3', 'KNN'), 'The parameter clf_type must be ID3 or KNN'
     hw_path = str(pathlib.Path(__file__).parent.absolute())
-    dataset_path = hw_path + f"/{clf_type}-dataset/"
-    train_file_path = dataset_path + "/train.csv"
-    test_file_path = dataset_path + "/test.csv"
+    dataset_path = hw_path + f"{divider}{clf_type}-dataset{divider}"
+    train_file_path = dataset_path + divider + "train.csv"
+    test_file_path = dataset_path + divider + "test.csv"
     # Import all columns omitting the fist which consists the names of the attributes
     train_dataset = pd.read_csv(train_file_path)
     test_dataset = pd.read_csv(test_file_path)
